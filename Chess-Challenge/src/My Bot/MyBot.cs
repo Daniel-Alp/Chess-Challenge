@@ -1,14 +1,14 @@
 ﻿using ChessChallenge.API;
 using System;
-using System.Linq;
-using System.Net.NetworkInformation;
+using System.Linq; //Remove?
+using System.Net.NetworkInformation; //Remove?
 
 public class MyBot : IChessBot {
     Move bestMove = Move.NullMove;
     
     public Move Think(Board board, Timer timer) 
     {
-        Search(board, timer, 5, 1);
+        Search(board, timer, -10000, 10000, 5, 0);
         if (bestMove == Move.NullMove)
         {
             Console.WriteLine("Oopsy!");
@@ -19,38 +19,50 @@ public class MyBot : IChessBot {
         }
     }
     
-    public int Search(Board board, Timer timer, int depth, int colour) 
+    public int Search(Board board, Timer timer, int alpha, int beta, int depth, int layer) 
     {
-        if (depth == 0) 
+        if (board.IsInCheckmate())
         {
-            return colour * Evaluate(board);
+            return -10000 + layer; //Favour checkmates that will require more moves
         }
+
+        if (depth == 0)
+        {
+            return Evaluate(board);
+        }
+
         Move[] moves = board.GetLegalMoves();
-        int eval, bestEval = -10000;
+
+        if (moves.Length == 0)
+        {
+            return 0;
+        }
+
         foreach (Move move in moves)
         {
             board.MakeMove(move);
-            eval = Search(board, timer, depth - 1, -colour);
+            int eval = -Search(board, timer, -beta, -alpha, depth - 1, layer + 1);
             board.UndoMove(move);
-            if (eval > bestEval)
+
+            if (eval > alpha)
             {
-                bestEval = eval;
-                if (depth - 5 == 0)
+                alpha = eval;
+                if (layer == 0)
                 {
-                    Console.WriteLine("New best move found!");
                     bestMove = move;
+                }
+                if (alpha >= beta)
+                {
+                    break;
                 }
             }
         }
-        return bestEval;
+
+        return alpha;
     }
 
     public int Evaluate(Board board) 
     {
-        if (board.IsInCheckmate())
-        {
-            return -10000;
-        }
         return 0;
     }
 }
