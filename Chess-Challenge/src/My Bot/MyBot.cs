@@ -1,10 +1,10 @@
 ﻿using ChessChallenge.API;
-using Microsoft.VisualBasic;
 using System;
 
 //TODO optimize token usage
 
-public class MyBot : IChessBot {
+public class MyBot : IChessBot
+{
     public struct Transposition
     {
         public ulong hash;
@@ -23,16 +23,16 @@ public class MyBot : IChessBot {
 
     Move bestMove;
 
-    int[] pieceVal = { 0, 126, 781, 825, 1276, 2538 };
-    ulong[] mgpieceSquareTable = { 114994836433535143, 214104825333364903, 206255400995132583, 171333832633604263, 125223626397159591, 149976873673234599, 190508194481725607, 202895305349329063, 220833820357785865, 187040335890872621, 165685648937958628, 180328949096852742, 179184376864766187, 183768226912769317, 145455700176451785, 155617405899528348, 178061684176445601, 215212008881228974, 190468606732218561, 170203518654980294, 165722988365475048, 195026102837879007, 213030622908891328, 163501973764787347, 169039071370442905, 165661385618022580, 174680698842704045, 157792220673700028, 154431011466457278, 160080314021163187, 172444276073096376, 147677763763106960, 133030052673775756, 187054567261908133, 157799876414069922, 144287989845119155, 136415497336065208, 138665080923547821, 151057690436759729, 130784863898991758, 172431042197733517, 172448655874357411, 163427172632153251, 136415469398836381, 138663992151435434, 154434284221030570, 171335971585065160, 157815247025101979, 189296452134119556, 196081568465406118, 179213956289817747, 116153677696372880, 139804181407111320, 170211188372858047, 198338876593562829, 197217304906453137, 171319463824652455, 228721673849948327, 201709986711188647, 127421500753057959, 197199806121269415, 156656404696018087, 215196555509125287, 203916677549801639 };
-    ulong[] egpieceSquareTable = { };
+    int[] pieceVal = { 0, 82, 337, 365, 477, 1025, 0 }, phaseVal = { 1, 1, 2, 2, 4, 0 };
+    ulong[] mgpieceSquareTable = { 6004234345560363859, 5216961999590216514, 5576676063466049862, 5140953929278902854, 5214140734727674444, 5287348508207109968, 5648800866043598468, 6004234345560363859, 5209052108559894815, 5353755569969510725, 5431442706592780104, 5719111249516254541, 6799439719732960335, 7599987637732405564, 5428933629868195631, 2183158892895282944, 5278303757615780419, 6081089126010674005, 6367071013902703443, 6149763578822548048, 5933323624174671441, 5937552341517035083, 4349476007150508870, 5717106727727027525, 5062423506043817290, 3481380726304754493, 4850749899455285053, 5212441959012845121, 5282552348241514055, 6589446149866806609, 7593198144808051553, 7594010649456502883, 4198559145840822867, 6076019277911641922, 6222378543415710796, 5932737498073482831, 6076020360091485766, 8100690822918785869, 7953761885752475719, 7667775776126817093, 6511999827110880588, 6293863209771161428, 5065498710680030284, 4198266606625116987, 4705214069258144075, 5214700291338035023, 4990077788217758562, 6508900166728900403 };
+    ulong[] egpieceSquareTable = { 6004234345560363859, 5788343068572211034, 5716001770401978197, 6004792884531976282, 6655288161471192931, 9042223576844764546, 12801083494916860588, 6004234345560363859, 3691344518961445445, 4415860052537002302, 5208784983473476168, 5356288879355449418, 5356848543625532747, 4560544792049109319, 4127345989516742471, 2464672155112914998, 5427201829996351304, 5065510908773550668, 5498988991536910925, 5715728009338180944, 6076860417258903634, 6148352827876134740, 5499261635876311375, 5137287006292691276, 5284214749474935887, 5930764961429278800, 5426641083395298129, 5642817168372880981, 6076293043422123349, 5931612710697916247, 6149477628372474457, 6221539650555369562, 4560250113905673539, 4846234162249877576, 6221824419688040011, 6874573734370173258, 7309455927740948053, 6367356960225384009, 6008470888769609035, 6726228716304621135, 4487639414247866937, 5427212872509115974, 5717138717133066826, 5645367004725399882, 6152027456101375567, 6514855285165612120, 6439978539035548749, 5428345317676958254};
 
-    Transposition[] transpoTable = new Transposition[8388608];
+    Transposition[] transpoTable = new Transposition[67108864];
 
     public Move Think(Board board, Timer timer)
     {
         bestMove = Move.NullMove;
-        for (int i = 1; i < 20; i++)
+        for (int i = 1; i < 40; i++)
         {
             Search(board, timer, -10000000, 10000000, i, 0, 0);
             if (timer.MillisecondsElapsedThisTurn * 30 >= timer.MillisecondsRemaining) break;
@@ -46,13 +46,14 @@ public class MyBot : IChessBot {
 
         ulong hash = board.ZobristKey;
 
-        Transposition transposition = transpoTable[hash % 8388608];
+        Transposition transposition = transpoTable[hash % 67108864];
         if (ply != 0 && transposition.failType != 0 && hash == transposition.hash && transposition.depth >= depth)
         {
             if (transposition.failType == 1) return transposition.eval;
             if (transposition.failType == 2 && transposition.eval >= beta) return beta;
             if (transposition.failType == 3 && transposition.eval <= alpha) return alpha;
         }
+
 
         int bestEval = -1000000, eval = Evaluate(board), initAlpha = alpha;
 
@@ -72,13 +73,13 @@ public class MyBot : IChessBot {
             if (timer.MillisecondsElapsedThisTurn * 30 >= timer.MillisecondsRemaining) return 10000000;
             int bestEvalGuess = -10000000, evalGuess;
             for (int j = i; j < moves.Length; j++)
-            {       
+            {
                 move = moves[j];
                 evalGuess = (move.IsCapture ? 100 * (int)move.CapturePieceType - (int)move.MovePieceType : 0) + (move.IsPromotion ? 90 : 0) + (transposition.bestMove == move ? 1000000 : 0);
                 if (evalGuess > bestEvalGuess)
                 {
-                (moves[i], moves[j]) = (moves[j], moves[i]);
-                bestEvalGuess = evalGuess;
+                    (moves[i], moves[j]) = (moves[j], moves[i]);
+                    bestEvalGuess = evalGuess;
                 }
             }
 
@@ -97,34 +98,41 @@ public class MyBot : IChessBot {
             }
         }
 
-        transpoTable[hash % 8388608] = new Transposition(hash, depth, eval, bestMoveIter, bestEval >= beta ? 3 : bestEval > initAlpha ? 1 : 2);
+        transpoTable[hash % 67108864] = new Transposition(hash, depth, eval, bestMoveIter, bestEval >= beta ? 3 : bestEval > initAlpha ? 1 : 2);
         return bestEval;
     }
 
-    public ulong GetWeight(ulong bitBoard, int i, int pieceType)
+    public int GetSquareTableEval(int pieceType, int index, ulong[] squareTable)
     {
-        return 2 * (bitBoard >> i & 1) * ((mgpieceSquareTable[i] >> (10 * pieceType)) % 512 - 167);
+        return (int)((squareTable[pieceType * 8 + (index >> 3)] >> (index % 8 * 8)) % 256) * 2 - 167;
     }
 
     public int Evaluate(Board board)
     {
-        int eval = 0;
-        for (int i = 1; i < 6; i++) eval += (board.GetPieceList((PieceType)i, true).Count - board.GetPieceList((PieceType)i, false).Count) * pieceVal[i];
+        int materialEval = 0, midgameEval = 0, endgameEval = 0, phase = 0;
+        for (int i = 1; i < 6; i++) materialEval += (board.GetPieceList((PieceType)i, true).Count - board.GetPieceList((PieceType)i, false).Count) * pieceVal[i];
 
         ulong bitBoard;
         for (int i = 0; i < 12; i++)
         {
             bitBoard = board.GetPieceBitboard((PieceType)(i % 6 + 1), i < 6);
-            for (int r = 0; r < 8; r++)
+            for (int j = 0; j < 64; j++)
             {
-                for (int c = 0; c < 8; c++)
+                if ((bitBoard & (1UL << j)) != 0)
                 {
-                    if (i < 6) eval += (int)GetWeight(bitBoard, r * 8 + c, i % 6);
-                    else eval -= (int)GetWeight(bitBoard, (7 - r) * 8 + c, i % 6);
+                    phase += phaseVal[i % 6];
+                    if (i < 6) {
+                        midgameEval += GetSquareTableEval(i % 6, j, mgpieceSquareTable);
+                        endgameEval += GetSquareTableEval(i % 6, j, egpieceSquareTable);
+                    }
+                    else {
+                        midgameEval -= GetSquareTableEval(i % 6, j ^ 56, mgpieceSquareTable);
+                        endgameEval -= GetSquareTableEval(i % 6, j ^ 56, egpieceSquareTable);
+                    }
                 }
             }
         }
-
-        return eval * (board.IsWhiteToMove ? 1 : -1);
+        phase = Math.Max(phase, 24);
+        return (materialEval + (midgameEval * phase + endgameEval * (phase - 24)) / 24) * (board.IsWhiteToMove ? 1 : -1);
     }
 }
