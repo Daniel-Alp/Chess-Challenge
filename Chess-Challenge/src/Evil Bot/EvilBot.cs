@@ -161,13 +161,11 @@ namespace ChessChallenge.Example
         {
             bestmoveRoot = Move.NullMove;
             // https://www.chessprogramming.org/Iterative_Deepening
-            int depth_ = 1;
             for (int depth = 1; depth <= 50; depth++)
             {
                 posEval = 0;
                 transpoFound = 0;
                 int score = Search(board, timer, -30000, 30000, depth, 0);
-                depth_ = depth;
                 // Out of time
                 if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
                     break;
